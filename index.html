@@ -761,7 +761,7 @@
 // Vercel'e deploy edildikten sonra BASE_URL kendi URL'inle değişir
 // ============================================================
 
-const BASE_URL = ''; // Vercel deploy sonrası: 'https://macrolens.vercel.app'
+const BASE_URL = 'https://macrolens-gamma.vercel.app';
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 dakika
 let countdownSeconds = 300;
 let marketData = {};
@@ -875,7 +875,7 @@ function setCommodity(key, price, changePct) {
 
 // DEV MODU: Gerçek API'ler yerine mock veri kullan
 // Deploy sonrası USE_MOCK = false yapılacak
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 const MOCK = {
   market: {
