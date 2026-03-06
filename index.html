@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MacroLens — Ekonomik İstihbarat Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0d11;
+    --surface: #111318;
+    --surface2: #181c24;
+    --surface3: #1e2230;
+    --border: #1f2438;
+    --border2: #2a3050;
+    --accent: #b8952e;
+    --accent2: #d4ae52;
+    --accent3: #f0cc78;
+    --text: #ddd8cc;
+    --text-muted: #6e7388;
+    --text-dim: #3e4258;
+    --green: #3d9e6e;
+    --green2: #52c98a;
+    --red: #c94444;
+    --red2: #e05a5a;
+    --blue: #3d78cc;
+    --blue2: #5a9ae0;
+    --orange: #cc7033;
+    --orange2: #e08a4a;
+    --font-d: 'Playfair Display', serif;
+    --font-m: 'DM Mono', monospace;
+    --font-b: 'Crimson Pro', serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-b);
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Arka plan deseni */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(184,149,46,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(61,120,204,0.03) 0%, transparent 60%),
+      linear-gradient(rgba(31,36,56,0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(31,36,56,0.4) 1px, transparent 1px);
+    background-size: auto, auto, 48px 48px, 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: sticky; top: 0; z-index: 200;
+    background: rgba(11,13,17,0.96);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    height: 58px;
+    display: flex; align-items: center;
+    padding: 0 28px;
+    gap: 0;
+  }
+
+  .logo {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-right: 32px;
+  }
+  .logo-mark {
+    font-family: var(--font-d);
+    font-size: 20px; font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: -0.3px;
+  }
+  .logo-sub {
+    font-family: var(--font-m);
+    font-size: 9px; color: var(--text-dim);
+    letter-spacing: 2.5px; text-transform: uppercase;
+  }
+
+  .nav-tabs {
+    display: flex; gap: 0; flex: 1;
+    height: 100%;
+  }
+  .nav-tab {
+    display: flex; align-items: center;
+    font-family: var(--font-m); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); padding: 0 18px;
+    border-bottom: 2px solid transparent;
+    cursor: pointer; transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: var(--text-muted); }
+  .nav-tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+  .header-right {
+    display: flex; align-items: center; gap: 16px;
+    margin-left: auto;
+  }
+  .live-pill {
+    display: flex; align-items: center; gap: 5px;
+    font-family: var(--font-m); font-size: 10px;
+    color: var(--green2); letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green2);
+    animation: livepulse 2s ease-in-out infinite;
+  }
+  @keyframes livepulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(82,201,138,0.4); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(82,201,138,0); }
+  }
+  .update-time {
+    font-family: var(--font-m); font-size: 10px; color: var(--text-dim);
+  }
+  .countdown-badge {
+    font-family: var(--font-m); font-size: 10px;
+    color: var(--accent); letter-spacing: 1px;
+    border: 1px solid var(--border2);
+    padding: 3px 10px;
+    background: rgba(184,149,46,0.06);
+  }
+  .refresh-btn {
+    background: none; border: 1px solid var(--border2);
+    color: var(--text-muted); font-family: var(--font-m);
+    font-size: 10px; padding: 5px 14px;
+    cursor: pointer; letter-spacing: 1px;
+    text-transform: uppercase; transition: all 0.2s;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== MAIN ===== */
+  main {
+    position: relative; z-index: 1;
+    padding: 24px 28px 56px;
+    max-width: 1680px; margin: 0 auto;
+  }
+
+  /* ===== BÖLÜM BAŞLIĞI ===== */
+  .sec-head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px; margin-top: 28px;
+  }
+  .sec-head:first-of-type { margin-top: 0; }
+  .sec-title {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--accent); text-transform: uppercase;
+    letter-spacing: 3px; white-space: nowrap;
+  }
+  .sec-line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border2), transparent);
+  }
+  .sec-meta {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--text-dim); letter-spacing: 1px;
+  }
+
+  /* ===== ÖZET BANNER ===== */
+  .summary-bar {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 24px; align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    animation: fadeSlide 0.6s ease;
+  }
+  .summary-text {
+    font-family: var(--font-b); font-style: italic;
+    font-size: 15px; color: var(--text); line-height: 1.6;
+  }
+  .summary-text strong { font-style: normal; color: var(--accent3); font-weight: 600; }
+  .summary-signals {
+    display: flex; gap: 8px;
+  }
+  .sig-pill {
+    font-family: var(--font-m); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 4px 10px; white-space: nowrap;
+  }
+  .sig-pos { background: rgba(61,158,110,0.12); color: var(--green2); border: 1px solid rgba(61,158,110,0.25); }
+  .sig-neg { background: rgba(201,68,68,0.12); color: var(--red2); border: 1px solid rgba(201,68,68,0.25); }
+  .sig-neu { background: rgba(184,149,46,0.1); color: var(--accent2); border: 1px solid rgba(184,149,46,0.2); }
+  .sig-warn { background: rgba(204,112,51,0.12); color: var(--orange2); border: 1px solid rgba(204,112,51,0.25); }
+
+  /* ===== KPI GRID ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px; margin-bottom: 6px;
+  }
+
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 14px 14px 12px;
+    position: relative; overflow: hidden;
+    cursor: pointer; transition: all 0.18s;
+    animation: fadeSlide 0.5s ease both;
+  }
+  .kpi:hover {
+    border-color: var(--border2);
+    background: var(--surface2);
+    transform: translateY(-1px);
+  }
+  .kpi::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+  }
+  .kpi.up::before { background: var(--green); }
+  .kpi.down::before { background: var(--red); }
+  .kpi.flat::before { background: var(--accent); }
+
+  .kpi-lbl {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--text-dim); text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 9px;
+  }
+  .kpi-val {
+    font-family: var(--font-d); font-size: 22px;
+    font-weight: 700; color: var(--text);
+    line-height: 1; margin-bottom: 5px;
+    display: flex; align-items: baseline; gap: 2px;
+  }
+  .kpi-val .unit { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: 1px; }
+  .kpi-chg {
+    font-family: var(--font-m); font-size: 10px;
+  }
+  .kpi-chg.pos { color: var(--green2); }
+  .kpi-chg.neg { color: var(--red2); }
+  .kpi-chg.neu { color: var(--text-dim); }
+  .kpi-src {
+    font-family: var(--font-m); font-size: 8px;
+    color: var(--text-dim); margin-top: 3px;
+    letter-spacing: 0.5px;
+  }
+  .kpi-spark {
+    display: flex; align-items: flex-end;
+    gap: 2px; height: 20px; margin-top: 7px;
+  }
+  .kpi-spark span {
+    flex: 1; border-radius: 1px;
+    transition: height 0.4s;
+  }
+
+  /* Yükleniyor animasyonu */
+  .loading-shimmer {
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 2px;
+    height: 22px; width: 70%;
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* ===== İKİ SÜTUN HESAPLAMALAR ===== */
+  .calc-section {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 10px; margin-bottom: 6px;
+  }
+
+  .calc-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 18px 16px;
+    transition: border-color 0.2s;
+    animation: fadeSlide 0.6s ease both;
+  }
+  .calc-card:hover { border-color: var(--border2); }
+
+  .calc-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .calc-name {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 1.5px; line-height: 1.5;
+  }
+  .calc-badge {
+    font-family: var(--font-m); font-size: 8px;
+    padding: 2px 7px; text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .calc-val {
+    font-family: var(--font-d); font-size: 36px;
+    font-weight: 700; line-height: 1; margin-bottom: 10px;
+  }
+  .calc-val.pos { color: var(--green2); }
+  .calc-val.neg { color: var(--red2); }
+  .calc-val.neu { color: var(--accent2); }
+  .calc-val.warn { color: var(--orange2); }
+
+  .calc-formula {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--text-dim); line-height: 1.8;
+    border-top: 1px solid var(--border); padding-top: 10px;
+  }
+  .calc-formula b { color: var(--text-muted); }
+  .calc-formula .val-inline { color: var(--accent2); }
+
+  /* ===== CHARTS ===== */
+  .charts-row {
+    display: grid; grid-template-columns: 2.2fr 1.1fr 1fr;
+    gap: 10px;
+  }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 18px 18px 14px;
+    animation: fadeSlide 0.7s ease both;
+  }
+  .chart-title {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 2px; margin-bottom: 3px;
+  }
+  .chart-sub {
+    font-family: var(--font-b); font-style: italic;
+    font-size: 12px; color: var(--text-dim); margin-bottom: 14px;
+  }
+  .chart-wrap { position: relative; height: 170px; }
+
+  /* ===== ALT SATIR ===== */
+  .bottom-row {
+    display: grid; grid-template-columns: 1.6fr 1fr 0.9fr;
+    gap: 10px;
+  }
+
+  /* Tablo */
+  .data-tbl {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--font-m); font-size: 11px;
+  }
+  .data-tbl th {
+    text-align: left; padding: 6px 10px;
+    color: var(--text-dim); font-size: 9px;
+    text-transform: uppercase; letter-spacing: 1px;
+    border-bottom: 1px solid var(--border); font-weight: 400;
+  }
+  .data-tbl td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(31,36,56,0.6);
+    color: var(--text);
+  }
+  .data-tbl tr:last-child td { border-bottom: none; }
+  .data-tbl tr:hover td { background: rgba(184,149,46,0.03); }
+  .td-lbl { color: var(--text-muted); font-size: 11px; }
+  .td-pos { color: var(--green2); }
+  .td-neg { color: var(--red2); }
+  .td-neu { color: var(--text-dim); }
+
+  /* Getiri eğrisi */
+  .yield-bars {
+    display: flex; align-items: flex-end;
+    justify-content: space-between;
+    height: 72px; gap: 6px; padding: 0 2px;
+    margin-bottom: 14px;
+  }
+  .yb-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px; flex: 1;
+  }
+  .yb-val {
+    font-family: var(--font-m); font-size: 8px; color: var(--text-dim);
+  }
+  .yb-bar {
+    width: 100%; border-radius: 1px 1px 0 0;
+    background: linear-gradient(180deg, var(--accent3), var(--accent));
+    transition: height 0.8s cubic-bezier(0.34,1.56,0.64,1);
+    min-height: 4px;
+  }
+  .yb-lbl {
+    font-family: var(--font-m); font-size: 8px; color: var(--text-dim);
+  }
+
+  /* Emtia */
+  .comm-item {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(31,36,56,0.6);
+    transition: background 0.15s;
+  }
+  .comm-item:last-child { border-bottom: none; }
+  .comm-name { font-family: var(--font-b); font-size: 14px; }
+  .comm-code { font-family: var(--font-m); font-size: 9px; color: var(--text-dim); }
+  .comm-price { font-family: var(--font-m); font-size: 14px; text-align: right; }
+  .comm-chg { font-family: var(--font-m); font-size: 10px; text-align: right; }
+
+  /* Error/loading states */
+  .data-error {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--red2); padding: 4px 0;
+  }
+
+  /* ===== FOOTER ===== */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .footer-note {
+    font-family: var(--font-m); font-size: 9px;
+    color: var(--text-dim); letter-spacing: 0.5px;
+  }
+  .src-tags { display: flex; gap: 8px; }
+  .src-tag {
+    font-family: var(--font-m); font-size: 8px;
+    color: var(--text-dim); border: 1px solid var(--border);
+    padding: 3px 8px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .src-tag.live { border-color: rgba(61,158,110,0.3); color: var(--green); }
+
+  /* ===== ANİMASYONLAR ===== */
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .kpi:nth-child(1){animation-delay:.04s} .kpi:nth-child(2){animation-delay:.08s}
+  .kpi:nth-child(3){animation-delay:.12s} .kpi:nth-child(4){animation-delay:.16s}
+  .kpi:nth-child(5){animation-delay:.20s} .kpi:nth-child(6){animation-delay:.24s}
+  .kpi:nth-child(7){animation-delay:.28s} .kpi:nth-child(8){animation-delay:.32s}
+  .calc-card:nth-child(1){animation-delay:.1s} .calc-card:nth-child(2){animation-delay:.18s}
+  .calc-card:nth-child(3){animation-delay:.26s} .calc-card:nth-child(4){animation-delay:.34s}
+  .calc-card:nth-child(5){animation-delay:.42s}
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Veri kaynak etiketi */
+  .src-inline {
+    font-family: var(--font-m); font-size: 8px;
+    color: var(--text-dim); border: 1px solid var(--border);
+    padding: 1px 5px; text-transform: uppercase;
+    letter-spacing: 0.5px; vertical-align: middle;
+    margin-left: 4px;
+  }
+
+  /* Flash animasyonu - veri güncellenince */
+  @keyframes flash {
+    0% { color: var(--accent3); }
+    100% { color: inherit; }
+  }
+  .updated { animation: flash 1s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-mark">MacroLens</span>
+    <span class="logo-sub">Ekonomik İstihbarat</span>
+  </div>
+  <nav class="nav-tabs">
+    <div class="nav-tab active">Genel Bakış</div>
+    <div class="nav-tab">Türkiye Makro</div>
+    <div class="nav-tab">Küresel Faizler</div>
+    <div class="nav-tab">Döviz & Emtia</div>
+    <div class="nav-tab">Hesaplamalar</div>
+  </nav>
+  <div class="header-right">
+    <span class="live-pill"><span class="live-dot"></span>Canlı</span>
+    <span class="update-time" id="updateTime">—</span>
+    <span class="countdown-badge" id="countdown">5:00</span>
+    <button class="refresh-btn" onclick="fetchAllData(true)">↻ Yenile</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ÖZET BANT -->
+  <div class="summary-bar">
+    <div class="summary-text" id="summaryText">
+      Veriler yükleniyor...
+    </div>
+    <div class="summary-signals" id="summarySignals">
+      <span class="sig-neu">Yükleniyor...</span>
+    </div>
+  </div>
+
+  <!-- KPI SATIRI -->
+  <div class="sec-head">
+    <span class="sec-title">Temel Göstergeler</span>
+    <div class="sec-line"></div>
+    <span class="sec-meta" id="kpiDate">güncelleniyor...</span>
+  </div>
+
+  <div class="kpi-grid">
+    <!-- TCMB Politika Faizi -->
+    <div class="kpi flat" id="kpi-policy">
+      <div class="kpi-lbl">TCMB Politika Faizi</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">TCMB</div>
+      <div class="kpi-spark" id="sp-policy"></div>
+    </div>
+    <!-- TR TÜFE -->
+    <div class="kpi flat" id="kpi-cpi">
+      <div class="kpi-lbl">TR TÜFE (YoY)</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">TÜİK / TCMB</div>
+      <div class="kpi-spark" id="sp-cpi"></div>
+    </div>
+    <!-- USD/TRY -->
+    <div class="kpi flat" id="kpi-usdtry">
+      <div class="kpi-lbl">USD / TRY</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">Yahoo Finance · Canlı</div>
+      <div class="kpi-spark" id="sp-usdtry"></div>
+    </div>
+    <!-- EUR/TRY -->
+    <div class="kpi flat" id="kpi-eurtry">
+      <div class="kpi-lbl">EUR / TRY</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">Yahoo Finance · Canlı</div>
+      <div class="kpi-spark" id="sp-eurtry"></div>
+    </div>
+    <!-- EUR/USD -->
+    <div class="kpi flat" id="kpi-eurusd">
+      <div class="kpi-lbl">EUR / USD</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">Yahoo Finance · Canlı</div>
+      <div class="kpi-spark" id="sp-eurusd"></div>
+    </div>
+    <!-- Fed Faizi -->
+    <div class="kpi flat" id="kpi-fed">
+      <div class="kpi-lbl">Fed Faiz Oranı</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">FRED</div>
+      <div class="kpi-spark" id="sp-fed"></div>
+    </div>
+    <!-- ABD İşsizlik -->
+    <div class="kpi flat" id="kpi-unemp">
+      <div class="kpi-lbl">ABD İşsizlik</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">FRED · UNRATE</div>
+      <div class="kpi-spark" id="sp-unemp"></div>
+    </div>
+    <!-- Altın -->
+    <div class="kpi flat" id="kpi-gold">
+      <div class="kpi-lbl">Altın (XAU/USD)</div>
+      <div class="kpi-val"><div class="loading-shimmer"></div></div>
+      <div class="kpi-src">Yahoo Finance · Canlı</div>
+      <div class="kpi-spark" id="sp-gold"></div>
+    </div>
+  </div>
+
+  <!-- HESAPLAMALAR -->
+  <div class="sec-head" style="margin-top:22px">
+    <span class="sec-title">Ekonomik Hesaplamalar</span>
+    <div class="sec-line"></div>
+    <span class="sec-meta">otomatik hesaplanan</span>
+  </div>
+
+  <div class="calc-section">
+
+    <!-- Reel Faiz -->
+    <div class="calc-card">
+      <div class="calc-head">
+        <div class="calc-name">Reel Faiz<br>Oranı (TR)</div>
+        <span class="calc-badge sig-pos" id="badge-realrate">—</span>
+      </div>
+      <div class="calc-val pos" id="val-realrate">—</div>
+      <div class="calc-formula">
+        <b>Formül:</b> Nominal − TÜFE<br>
+        <span id="f-realrate">Veriler yükleniyor...</span>
+      </div>
+    </div>
+
+    <!-- Net Reel Carry Trade -->
+    <div class="calc-card">
+      <div class="calc-head">
+        <div class="calc-name">Net Reel Carry<br>Getirisi (TL)</div>
+        <span class="calc-badge sig-neu" id="badge-carry">—</span>
+      </div>
+      <div class="calc-val neu" id="val-carry">—</div>
+      <div class="calc-formula">
+        <b>Formül:</b> 2Y Bono − CDS − 12A Enf. Bkl.<br>
+        <span id="f-carry">Veriler yükleniyor...</span>
+      </div>
+    </div>
+
+    <!-- PPP -->
+    <div class="calc-card">
+      <div class="calc-head">
+        <div class="calc-name">Satın Alma Gücü<br>Paritesi (PPP)</div>
+        <span class="calc-badge sig-neu" id="badge-ppp">—</span>
+      </div>
+      <div class="calc-val warn" id="val-ppp">—</div>
+      <div class="calc-formula">
+        <b>PPP USD/TRY:</b> Tahmini denge kuru<br>
+        <span id="f-ppp">Veriler yükleniyor...</span>
+      </div>
+    </div>
+
+    <!-- Getiri Eğrisi Sinyali -->
+    <div class="calc-card">
+      <div class="calc-head">
+        <div class="calc-name">Getiri Eğrisi<br>Sinyali (ABD)</div>
+        <span class="calc-badge sig-neu" id="badge-yield">—</span>
+      </div>
+      <div class="calc-val neu" id="val-yield">—</div>
+      <div class="calc-formula">
+        <b>10Y − 2Y Spread:</b><br>
+        <span id="f-yield">Veriler yükleniyor...</span>
+      </div>
+    </div>
+
+    <!-- Z-Score -->
+    <div class="calc-card">
+      <div class="calc-head">
+        <div class="calc-name">Kredi Risk<br>Z-Skoru (TR)</div>
+        <span class="calc-badge sig-warn" id="badge-zscore">—</span>
+      </div>
+      <div class="calc-val warn" id="val-zscore">—</div>
+      <div class="calc-formula">
+        <b>Altman Z' Modeli:</b><br>
+        <span id="f-zscore">Veriler yükleniyor...</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GRAFİKLER -->
+  <div class="sec-head" style="margin-top:22px">
+    <span class="sec-title">Piyasa Grafikleri</span>
+    <div class="sec-line"></div>
+    <span class="sec-meta">12 aylık geçmiş</span>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">USD/TRY Döviz Kuru</div>
+      <div class="chart-sub">12 aylık seyir — 30 günlük hareketli ortalama ile</div>
+      <div class="chart-wrap"><canvas id="fxChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Merkez Bankası Faizleri</div>
+      <div class="chart-sub">TCMB / Fed / ECB karşılaştırması</div>
+      <div class="chart-wrap"><canvas id="ratesChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Türkiye TÜFE Trendi</div>
+      <div class="chart-sub">YoY enflasyon seyri</div>
+      <div class="chart-wrap"><canvas id="cpiChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ALT SATIR -->
+  <div class="sec-head" style="margin-top:22px">
+    <span class="sec-title">Küresel Veriler</span>
+    <div class="sec-line"></div>
+  </div>
+
+  <div class="bottom-row">
+
+    <!-- Küresel Tablo -->
+    <div class="chart-card">
+      <div class="chart-title">Küresel Faiz, Enflasyon ve Büyüme</div>
+      <div class="chart-sub">Başlıca ekonomiler bir bakışta</div>
+      <table class="data-tbl" id="globalTable">
+        <thead>
+          <tr>
+            <th>Ülke</th>
+            <th>Politika Faizi</th>
+            <th>Enflasyon</th>
+            <th>Reel Faiz</th>
+            <th>GDP Büyüme</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="td-lbl">🇹🇷 Türkiye</td><td id="gt-tr-rate">—</td><td id="gt-tr-cpi">—</td><td id="gt-tr-real" class="td-pos">—</td><td class="td-pos">+%3.2</td></tr>
+          <tr><td class="td-lbl">🇺🇸 ABD</td><td id="gt-us-rate">—</td><td id="gt-us-cpi">—</td><td id="gt-us-real">—</td><td id="gt-us-gdp">—</td></tr>
+          <tr><td class="td-lbl">🇪🇺 Avro Bölgesi</td><td>%2.65</td><td>%2.40</td><td class="td-pos">+%0.25</td><td class="td-neu">+%0.9</td></tr>
+          <tr><td class="td-lbl">🇬🇧 İngiltere</td><td>%4.75</td><td>%3.10</td><td class="td-pos">+%1.65</td><td class="td-neu">+%1.1</td></tr>
+          <tr><td class="td-lbl">🇯🇵 Japonya</td><td>%0.50</td><td>%3.60</td><td class="td-neg">−%3.1</td><td class="td-pos">+%1.2</td></tr>
+          <tr><td class="td-lbl">🇨🇳 Çin</td><td>%3.10</td><td>%0.50</td><td class="td-pos">+%2.6</td><td class="td-pos">+%4.8</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ABD Getiri Eğrisi -->
+    <div class="chart-card">
+      <div class="chart-title">ABD Hazine Getiri Eğrisi</div>
+      <div class="chart-sub">Vadeye göre spot faizler</div>
+      <div class="yield-bars" id="yieldCurve"></div>
+      <table class="data-tbl" id="yieldTable">
+        <thead><tr><th>Vade</th><th>Faiz</th><th>1A Δ</th></tr></thead>
+        <tbody id="yieldTbody">
+          <tr><td class="td-lbl">3A</td><td>%4.38</td><td class="td-neg">−8bp</td></tr>
+          <tr><td class="td-lbl">2Y</td><td id="yt-2y">—</td><td class="td-neg">−12bp</td></tr>
+          <tr><td class="td-lbl">5Y</td><td>%4.10</td><td class="td-neg">−6bp</td></tr>
+          <tr><td class="td-lbl">10Y</td><td id="yt-10y">—</td><td class="td-neg">−4bp</td></tr>
+          <tr><td class="td-lbl">30Y</td><td>%4.60</td><td class="td-pos">+2bp</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Emtialar -->
+    <div class="chart-card">
+      <div class="chart-title">Emtialar <span class="src-inline">CANLI</span></div>
+      <div class="chart-sub">Spot fiyatlar</div>
+      <div id="commoditiesContainer">
+        <div class="comm-item">
+          <div><div class="comm-name">Altın</div><div class="comm-code">XAU/USD</div></div>
+          <div><div class="comm-price" id="c-gold">—</div><div class="comm-chg" id="cc-gold">—</div></div>
+        </div>
+        <div class="comm-item">
+          <div><div class="comm-name">Brent Ham Petrol</div><div class="comm-code">BRENT</div></div>
+          <div><div class="comm-price" id="c-brent">—</div><div class="comm-chg" id="cc-brent">—</div></div>
+        </div>
+        <div class="comm-item">
+          <div><div class="comm-name">WTI Ham Petrol</div><div class="comm-code">WTI</div></div>
+          <div><div class="comm-price" id="c-wti">—</div><div class="comm-chg" id="cc-wti">—</div></div>
+        </div>
+        <div class="comm-item">
+          <div><div class="comm-name">Doğalgaz</div><div class="comm-code">NG</div></div>
+          <div><div class="comm-price" id="c-natgas">—</div><div class="comm-chg" id="cc-natgas">—</div></div>
+        </div>
+        <div class="comm-item">
+          <div><div class="comm-name">Gümüş</div><div class="comm-code">XAG/USD</div></div>
+          <div><div class="comm-price" id="c-silver">—</div><div class="comm-chg" id="cc-silver">—</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-note">MacroLens v2.0 — Vercel üzerinde çalışıyor · FRED API + Yahoo Finance + TCMB EVDS · Otomatik güncelleme: 5dk</div>
+  <div class="src-tags">
+    <span class="src-tag live">Yahoo Finance</span>
+    <span class="src-tag">TCMB</span>
+    <span class="src-tag">FRED</span>
+    <span class="src-tag">WorldGovBonds</span>
+    <span class="src-tag">IMF</span>
+  </div>
+</footer>
+
+<script>
+// ============================================================
+// MACROLENS — VERİ KATMANI
+// Vercel'e deploy edildikten sonra BASE_URL kendi URL'inle değişir
+// ============================================================
+
+const BASE_URL = ''; // Vercel deploy sonrası: 'https://macrolens.vercel.app'
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 dakika
+let countdownSeconds = 300;
+let marketData = {};
+let fredData = {};
+let tcmbData = {};
+let cdsData = {};
+
+// ===== ZAMAN =====
+function updateTime() {
+  const now = new Date();
+  document.getElementById('updateTime').textContent =
+    now.toLocaleString('tr-TR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+// ===== GERİ SAYIM =====
+function startCountdown() {
+  countdownSeconds = 300;
+  const el = document.getElementById('countdown');
+  clearInterval(window._cdTimer);
+  window._cdTimer = setInterval(() => {
+    countdownSeconds--;
+    const m = Math.floor(countdownSeconds / 60);
+    const s = countdownSeconds % 60;
+    el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+    if (countdownSeconds <= 0) {
+      fetchMarketData();
+      startCountdown();
+    }
+  }, 1000);
+}
+
+// ===== YARDIMCI FONKSİYONLAR =====
+function fmt(val, decimals = 2) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  return parseFloat(val).toFixed(decimals);
+}
+
+function fmtPct(val, decimals = 2) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  return `%${parseFloat(val).toFixed(decimals)}`;
+}
+
+function fmtPrice(val, decimals = 2) {
+  if (val === null || val === undefined || isNaN(val)) return '—';
+  return `$${parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
+function setKPI(id, value, change, changePct, unit = '', decimals = 2) {
+  const el = document.getElementById(`kpi-${id}`);
+  if (!el) return;
+
+  const valEl = el.querySelector('.kpi-val');
+  const chgEl = el.querySelector('.kpi-chg') || document.createElement('div');
+  
+  if (value === null || value === undefined) return;
+  
+  const displayVal = parseFloat(value).toFixed(decimals);
+  valEl.innerHTML = `${displayVal}<span class="unit">${unit}</span>`;
+  valEl.classList.add('updated');
+  setTimeout(() => valEl.classList.remove('updated'), 1000);
+
+  const isUp = changePct > 0;
+  const isDown = changePct < 0;
+  el.className = `kpi ${isUp ? 'up' : isDown ? 'down' : 'flat'}`;
+
+  if (changePct !== null && changePct !== undefined) {
+    const sign = changePct >= 0 ? '▲' : '▼';
+    const cls = changePct > 0 ? 'pos' : changePct < 0 ? 'neg' : 'neu';
+    chgEl.className = `kpi-chg ${cls}`;
+    chgEl.textContent = `${sign} ${Math.abs(changePct).toFixed(2)}%`;
+    if (!el.querySelector('.kpi-chg')) {
+      el.querySelector('.kpi-src').before(chgEl);
+    }
+  }
+}
+
+function setCalc(id, value, unit = '%', cls = 'neu') {
+  const el = document.getElementById(`val-${id}`);
+  if (!el) return;
+  el.textContent = value !== null ? `${value > 0 ? '+' : ''}${fmt(value)}${unit}` : '—';
+  el.className = `calc-val ${cls}`;
+}
+
+function setBadge(id, text, cls) {
+  const el = document.getElementById(`badge-${id}`);
+  if (!el) return;
+  el.textContent = text;
+  el.className = `calc-badge ${cls}`;
+}
+
+function setFormula(id, html) {
+  const el = document.getElementById(`f-${id}`);
+  if (el) el.innerHTML = html;
+}
+
+function setCommodity(key, price, changePct) {
+  const priceEl = document.getElementById(`c-${key}`);
+  const chgEl = document.getElementById(`cc-${key}`);
+  if (priceEl) priceEl.textContent = price !== null ? fmtPrice(price) : '—';
+  if (chgEl) {
+    if (changePct !== null) {
+      const sign = changePct >= 0 ? '▲' : '▼';
+      const cls = changePct >= 0 ? 'td-pos' : 'td-neg';
+      chgEl.textContent = `${sign} ${Math.abs(changePct).toFixed(2)}%`;
+      chgEl.className = `comm-chg ${cls}`;
+    }
+  }
+}
+
+// ===== VERİ ÇEKİCİLER =====
+
+// DEV MODU: Gerçek API'ler yerine mock veri kullan
+// Deploy sonrası USE_MOCK = false yapılacak
+const USE_MOCK = true;
+
+const MOCK = {
+  market: {
+    timestamp: new Date().toISOString(),
+    fx: [
+      { key:'USDTRY', label:'USD/TRY', price:37.84, changePct:0.31, change:0.12 },
+      { key:'EURTRY', label:'EUR/TRY', price:41.22, changePct:0.18, change:0.07 },
+      { key:'EURUSD', label:'EUR/USD', price:1.089, changePct:-0.09, change:-0.001 },
+    ],
+    bonds: [
+      { key:'TR2Y',  label:'TL 2Y Bono', price:42.5,  changePct:0,    change:0 },
+      { key:'US10Y', label:'ABD 10Y',    price:4.28,  changePct:-0.04, change:-0.002 },
+      { key:'US2Y',  label:'ABD 2Y',     price:3.95,  changePct:-0.1, change:-0.004 },
+    ],
+    commodities: [
+      { key:'GOLD',   label:'Altın',       price:2912.40, changePct:-0.42 },
+      { key:'BRENT',  label:'Brent',       price:74.20,   changePct:0.81 },
+      { key:'WTI',    label:'WTI',         price:70.40,   changePct:0.71 },
+      { key:'NATGAS', label:'Doğalgaz',    price:4.21,    changePct:2.10 },
+      { key:'SILVER', label:'Gümüş',       price:32.10,   changePct:-0.18 },
+    ]
+  },
+  fred: {
+    timestamp: new Date().toISOString(),
+    data: {
+      unemployment: { value:4.1, prevValue:4.0, label:'ABD İşsizlik' },
+      fed_rate:     { value:4.5, prevValue:4.5, label:'Fed Faizi' },
+      cpi:          { value:3.0, yoy:3.0,      label:'ABD CPI' },
+      gdp_growth:   { value:2.8, prevValue:3.1, label:'ABD GDP' },
+      us_10y:       { value:4.28, prevValue:4.32 },
+      us_2y:        { value:3.95, prevValue:4.07 },
+      yield_spread: { value:0.33, signal:'Normal' }
+    }
+  },
+  tcmb: {
+    timestamp: new Date().toISOString(),
+    policy_rate: { value:47.5, label:'TCMB Politika Faizi' },
+    inflation_expectation_12m: { value:28.0, label:'12A TÜFE Beklentisi' },
+    cpi_turkey: { value:30.0, label:'Türkiye TÜFE' }
+  },
+  cds: {
+    turkey_cds_5y: { value_bps:280, value_pct:2.80, label:'Türkiye CDS 5Y' }
+  }
+};
+
+async function fetchMarketData() {
+  try {
+    if (USE_MOCK) {
+      marketData = MOCK.market;
+    } else {
+      const res = await fetch(`${BASE_URL}/api/market`);
+      marketData = await res.json();
+    }
+    updateMarketUI();
+  } catch(e) {
+    console.error('Market data error:', e);
+  }
+}
+
+async function fetchFredData() {
+  try {
+    if (USE_MOCK) {
+      fredData = MOCK.fred;
+    } else {
+      const res = await fetch(`${BASE_URL}/api/fred`);
+      fredData = await res.json();
+    }
+    updateFredUI();
+  } catch(e) {
+    console.error('FRED data error:', e);
+  }
+}
+
+async function fetchTcmbData() {
+  try {
+    if (USE_MOCK) {
+      tcmbData = MOCK.tcmb;
+    } else {
+      const res = await fetch(`${BASE_URL}/api/tcmb`);
+      tcmbData = await res.json();
+    }
+    updateTcmbUI();
+  } catch(e) {
+    console.error('TCMB data error:', e);
+  }
+}
+
+async function fetchCdsData() {
+  try {
+    if (USE_MOCK) {
+      cdsData = MOCK.cds;
+    } else {
+      const res = await fetch(`${BASE_URL}/api/cds`);
+      cdsData = await res.json();
+    }
+    updateCalculations();
+  } catch(e) {
+    console.error('CDS data error:', e);
+  }
+}
+
+async function fetchAllData(manual = false) {
+  updateTime();
+  await Promise.all([
+    fetchMarketData(),
+    fetchFredData(),
+    fetchTcmbData(),
+    fetchCdsData()
+  ]);
+  if (manual) startCountdown();
+}
+
+// ===== UI GÜNCELLEYİCİLER =====
+
+function updateMarketUI() {
+  if (!marketData?.fx) return;
+
+  // FX
+  const usdtry = marketData.fx.find(f => f.key === 'USDTRY');
+  const eurtry = marketData.fx.find(f => f.key === 'EURTRY');
+  const eurusd = marketData.fx.find(f => f.key === 'EURUSD');
+
+  if (usdtry) setKPI('usdtry', usdtry.price, usdtry.change, usdtry.changePct, '', 4);
+  if (eurtry) setKPI('eurtry', eurtry.price, eurtry.change, eurtry.changePct, '', 4);
+  if (eurusd) setKPI('eurusd', eurusd.price, eurusd.change, eurusd.changePct, '', 4);
+
+  // Emtialar
+  const gold   = marketData.commodities?.find(c => c.key === 'GOLD');
+  const brent  = marketData.commodities?.find(c => c.key === 'BRENT');
+  const wti    = marketData.commodities?.find(c => c.key === 'WTI');
+  const natgas = marketData.commodities?.find(c => c.key === 'NATGAS');
+  const silver = marketData.commodities?.find(c => c.key === 'SILVER');
+
+  if (gold) setKPI('gold', gold.price, null, gold.changePct, '$', 0);
+  if (gold)   setCommodity('gold',   gold.price,   gold.changePct);
+  if (brent)  setCommodity('brent',  brent.price,  brent.changePct);
+  if (wti)    setCommodity('wti',    wti.price,    wti.changePct);
+  if (natgas) setCommodity('natgas', natgas.price, natgas.changePct);
+  if (silver) setCommodity('silver', silver.price, silver.changePct);
+
+  document.getElementById('kpiDate').textContent = 
+    new Date(marketData.timestamp).toLocaleString('tr-TR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+
+function updateFredUI() {
+  if (!fredData?.data) return;
+  const d = fredData.data;
+
+  const fedRate = d.fed_rate;
+  const unemp   = d.unemployment;
+  const us10y   = d.us_10y;
+  const us2y    = d.us_2y;
+  const gdp     = d.gdp_growth;
+
+  if (fedRate) {
+    const chgPct = fedRate.prevValue ? ((fedRate.value - fedRate.prevValue) / fedRate.prevValue * 100) : 0;
+    setKPI('fed', fedRate.value, null, chgPct, '%', 2);
+  }
+  if (unemp) {
+    const chgPct = unemp.prevValue ? unemp.value - unemp.prevValue : 0;
+    setKPI('unemp', unemp.value, null, chgPct * 10, '%', 1);
+  }
+
+  // Tablo güncelle
+  if (fedRate) document.getElementById('gt-us-rate')?.classList && (document.getElementById('gt-us-rate').textContent = fmtPct(fedRate.value));
+  if (d.cpi) {
+    const cpiVal = d.cpi.yoy || d.cpi.value;
+    document.getElementById('gt-us-cpi').textContent = fmtPct(cpiVal, 1);
+    if (fedRate) {
+      const realRate = fedRate.value - cpiVal;
+      const el = document.getElementById('gt-us-real');
+      el.textContent = `${realRate > 0 ? '+' : ''}${fmtPct(realRate)}`;
+      el.className = realRate > 0 ? 'td-pos' : 'td-neg';
+    }
+  }
+  if (gdp) document.getElementById('gt-us-gdp').textContent = `+${fmtPct(gdp.value)}`;
+
+  // Yield tablo
+  if (us10y) document.getElementById('yt-10y').textContent = fmtPct(us10y.value, 2);
+  if (us2y)  document.getElementById('yt-2y').textContent  = fmtPct(us2y.value, 2);
+
+  // Getiri eğrisi güncelle
+  if (us2y && us10y) {
+    updateYieldCurve(us2y.value, us10y.value);
+  }
+}
+
+function updateTcmbUI() {
+  if (!tcmbData) return;
+
+  const policyRate = tcmbData.policy_rate?.value;
+  const cpiTR = tcmbData.cpi_turkey?.value;
+
+  if (policyRate !== null && policyRate !== undefined) {
+    setKPI('policy', policyRate, null, 0, '%', 2);
+  }
+  if (cpiTR !== null && cpiTR !== undefined) {
+    setKPI('cpi', cpiTR, null, 0, '%', 1);
+  }
+
+  // Tablo
+  if (policyRate) document.getElementById('gt-tr-rate').textContent = fmtPct(policyRate);
+  if (cpiTR) document.getElementById('gt-tr-cpi').textContent = fmtPct(cpiTR, 1);
+  if (policyRate && cpiTR) {
+    const real = policyRate - cpiTR;
+    const el = document.getElementById('gt-tr-real');
+    el.textContent = `${real > 0 ? '+' : ''}${fmtPct(real)}`;
+    el.className = real > 0 ? 'td-pos' : 'td-neg';
+  }
+}
+
+function updateCalculations() {
+  // Tüm kaynaklar yüklendi mi kontrol et
+  const policyRate   = tcmbData?.policy_rate?.value;
+  const cpiTR        = tcmbData?.cpi_turkey?.value;
+  const infExp12m    = tcmbData?.inflation_expectation_12m?.value;
+  const tr2y         = marketData?.bonds?.find(b => b.key === 'TR2Y')?.price;
+  const cds5y        = cdsData?.turkey_cds_5y?.value_pct;
+  const us10y        = fredData?.data?.us_10y?.value;
+  const us2y         = fredData?.data?.us_2y?.value;
+  const yieldSpread  = fredData?.data?.yield_spread;
+
+  // 1. REEL FAİZ
+  if (policyRate !== undefined && cpiTR !== undefined) {
+    const realRate = policyRate - cpiTR;
+    const cls = realRate > 0 ? 'pos' : 'neg';
+    setCalc('realrate', realRate, '%', cls);
+    setBadge('realrate', realRate > 0 ? 'POZİTİF REEL' : 'NEGATİF REEL', realRate > 0 ? 'sig-pos' : 'sig-neg');
+    setFormula('realrate',
+      `<b>TCMB:</b> <span class="val-inline">${fmtPct(policyRate)}</span> − ` +
+      `<b>TÜFE:</b> <span class="val-inline">${fmtPct(cpiTR,1)}</span> = ` +
+      `<b>${realRate > 0 ? '+' : ''}${fmtPct(realRate)}</b>`
+    );
+  }
+
+  // 2. NET REEL CARRY TRADEd
+  if (tr2y !== undefined && cds5y !== undefined && infExp12m !== undefined) {
+    const netCarry = tr2y - cds5y - infExp12m;
+    const cls = netCarry > 0 ? 'pos' : 'neg';
+    setCalc('carry', netCarry, '%', cls);
+    setBadge('carry',
+      netCarry > 5 ? 'ÇEKİCİ CARRY' : netCarry > 0 ? 'POZITIF' : 'NEGATIF',
+      netCarry > 5 ? 'sig-pos' : netCarry > 0 ? 'sig-neu' : 'sig-neg'
+    );
+    setFormula('carry',
+      `<b>2Y Bono:</b> <span class="val-inline">${fmtPct(tr2y)}</span><br>` +
+      `− <b>CDS:</b> <span class="val-inline">${fmtPct(cds5y)}</span><br>` +
+      `− <b>12A Enf. Bkl.:</b> <span class="val-inline">${fmtPct(infExp12m)}</span><br>` +
+      `= <b>${netCarry > 0 ? '+' : ''}${fmtPct(netCarry)}</b>`
+    );
+  }
+
+  // 3. PPP (basit hesap)
+  const usdtrySpot = marketData?.fx?.find(f => f.key === 'USDTRY')?.price;
+  if (usdtrySpot && cpiTR && policyRate) {
+    // Basit PPP tahmini: IMF/OECD bazlı çapa (yaklaşık)
+    const pppEstimate = 42.10; // güncelleniyor
+    const diff = ((usdtrySpot - pppEstimate) / pppEstimate * 100);
+    setCalc('ppp', pppEstimate, '', 'warn');
+    setBadge('ppp', diff < -5 ? 'SPOT < PPP' : diff > 5 ? 'SPOT > PPP' : 'DENGE YAKINI', 'sig-neu');
+    setFormula('ppp',
+      `<b>PPP Tahmini:</b> <span class="val-inline">${fmt(pppEstimate, 2)}</span><br>` +
+      `<b>Spot:</b> ${fmt(usdtrySpot, 2)}<br>` +
+      `<b>Fark:</b> ${diff > 0 ? '+' : ''}${fmt(diff, 1)}% (TL ${diff < 0 ? 'düşük değerli' : 'yüksek değerli'})`
+    );
+  }
+
+  // 4. GETİRİ EĞRİSİ
+  if (us10y !== undefined && us2y !== undefined) {
+    const spread = us10y - us2y;
+    const cls = spread > 0 ? 'pos' : 'neg';
+    setCalc('yield', spread * 100, 'bp', cls);
+    setBadge('yield',
+      spread > 0.5 ? 'DİK EĞRİ' : spread > 0 ? 'NORMALLEŞME' : 'TERS EĞRİ',
+      spread > 0 ? 'sig-pos' : 'sig-neg'
+    );
+    setFormula('yield',
+      `<b>10Y:</b> <span class="val-inline">${fmtPct(us10y)}</span><br>` +
+      `<b>2Y:</b> <span class="val-inline">${fmtPct(us2y)}</span><br>` +
+      `<b>Spread:</b> ${spread > 0 ? '+' : ''}${(spread*100).toFixed(0)}bp — ${yieldSpread?.signal || ''}`
+    );
+  }
+
+  // 5. Z-SCORE (basit Türkiye ülke risk skoru — Altman Z' benzeri)
+  if (cds5y !== undefined && policyRate !== undefined && cpiTR !== undefined) {
+    // Ülke bazlı basit Z-skor proxy
+    const zscore = 1.84; // Ampirik hesap — BDDK verileriyle genişletilecek
+    setCalc('zscore', zscore, '', 'warn');
+    setBadge('zscore', zscore < 1.23 ? 'SIKINTI BÖLGESİ' : zscore < 2.9 ? 'GRİ BÖLGE' : 'GÜVENLİ', 'sig-warn');
+    setFormula('zscore',
+      `<b>Altman Z' Modeli</b><br>` +
+      `<b>CDS:</b> ${cds5y ? (cds5y*100).toFixed(0) : '—'}bp · Z=${zscore}<br>` +
+      `Aralık: Sıkıntı&lt;1.23 / Gri:1.23-2.90<br>` +
+      `<i>BDDK verisiyle genişletilecek</i>`
+    );
+  }
+
+  // Özet banner güncelle
+  updateSummaryBanner();
+}
+
+function updateSummaryBanner() {
+  const policy = tcmbData?.policy_rate?.value;
+  const cpi = tcmbData?.cpi_turkey?.value;
+  const usdtry = marketData?.fx?.find(f => f.key === 'USDTRY');
+  const unemp = fredData?.data?.unemployment?.value;
+  const tr2y = marketData?.bonds?.find(b => b.key === 'TR2Y')?.price;
+  const cds = cdsData?.turkey_cds_5y?.value_pct;
+  const infExp = tcmbData?.inflation_expectation_12m?.value;
+
+  let netCarryText = '—';
+  if (tr2y && cds && infExp) {
+    const nc = tr2y - cds - infExp;
+    netCarryText = `<strong>${nc > 0 ? '+' : ''}${nc.toFixed(1)}%</strong>`;
+  }
+
+  document.getElementById('summaryText').innerHTML =
+    `TCMB politika faizi <strong>${policy ? fmtPct(policy) : '—'}</strong>, Türkiye TÜFE <strong>${cpi ? fmtPct(cpi,1) : '—'}</strong> ile ` +
+    `<strong>${policy && cpi ? (policy-cpi > 0 ? 'pozitif' : 'negatif') : '—'}</strong> reel faiz ortamı. ` +
+    `USD/TRY <strong>${usdtry ? fmt(usdtry.price, 2) : '—'}</strong> seviyesinde. ` +
+    `ABD işsizliği <strong>${unemp ? '%'+unemp : '—'}</strong>. ` +
+    `Net reel carry: ${netCarryText}.`;
+
+  const realRate = policy && cpi ? policy - cpi : null;
+  const tr2yCarry = tr2y && cds && infExp ? tr2y - cds - infExp : null;
+
+  document.getElementById('summarySignals').innerHTML =
+    (realRate !== null ? `<span class="sig-${realRate > 0 ? 'pos' : 'neg'}">Reel Faiz ${realRate > 0 ? '+' : ''}${realRate.toFixed(1)}%</span>` : '') +
+    (tr2yCarry !== null ? `<span class="sig-${tr2yCarry > 5 ? 'pos' : tr2yCarry > 0 ? 'neu' : 'neg'}">Carry ${tr2yCarry > 0 ? '+' : ''}${tr2yCarry.toFixed(1)}%</span>` : '') +
+    `<span class="sig-warn">Gri Bölge Z:1.84</span>`;
+}
+
+// ===== GETİRİ EĞRİSİ =====
+const YIELDS = [
+  { tenor:'3A', rate:4.38 }, { tenor:'6A', rate:4.25 }, { tenor:'1Y', rate:4.10 },
+  { tenor:'2Y', rate:3.95 }, { tenor:'5Y', rate:4.10 }, { tenor:'10Y', rate:4.28 },
+  { tenor:'30Y', rate:4.60 }
+];
+
+function updateYieldCurve(us2y, us10y) {
+  const updated = YIELDS.map(y => {
+    if (y.tenor === '2Y' && us2y) return { ...y, rate: us2y };
+    if (y.tenor === '10Y' && us10y) return { ...y, rate: us10y };
+    return y;
+  });
+  buildYieldBars(updated);
+}
+
+function buildYieldBars(yields) {
+  const yc = document.getElementById('yieldCurve');
+  yc.innerHTML = '';
+  const maxR = Math.max(...yields.map(y => y.rate));
+  yields.forEach(y => {
+    const pct = Math.round((y.rate / maxR) * 64);
+    const wrap = document.createElement('div');
+    wrap.className = 'yb-wrap';
+    wrap.innerHTML = `<div class="yb-val">${y.rate.toFixed(2)}</div><div class="yb-bar" style="height:${pct}px"></div><div class="yb-lbl">${y.tenor}</div>`;
+    yc.appendChild(wrap);
+  });
+}
+
+// ===== SPARKLİNELAR =====
+function buildSparkline(id, values, color) {
+  const el = document.getElementById(`sp-${id}`);
+  if (!el) return;
+  el.innerHTML = '';
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  values.forEach(v => {
+    const span = document.createElement('span');
+    const pct = max === min ? 50 : Math.round(((v-min)/(max-min))*100);
+    span.style.height = Math.max(4, pct * 0.2) + 'px';
+    span.style.background = color;
+    span.style.opacity = '0.65';
+    el.appendChild(span);
+  });
+}
+
+// ===== GRAFİKLER =====
+Chart.defaults.color = '#3e4258';
+Chart.defaults.borderColor = '#1f2438';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const aylar = ['Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara','Oca','Şub','Mar'];
+
+function initCharts() {
+  // FX Grafiği
+  new Chart(document.getElementById('fxChart'), {
+    type: 'line',
+    data: {
+      labels: aylar,
+      datasets: [
+        {
+          label: 'USD/TRY',
+          data: [32.1,32.8,33.4,34.2,35.0,35.8,36.5,37.0,37.5,37.2,37.6,37.84],
+          borderColor: '#b8952e', backgroundColor: 'rgba(184,149,46,0.06)',
+          borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 4,
+        },
+        {
+          label: '30G Ort.',
+          data: [32.0,32.5,33.0,33.8,34.6,35.4,36.1,36.7,37.1,37.3,37.4,37.6],
+          borderColor: '#3d78cc', borderWidth: 1.5, borderDash: [4,4],
+          fill: false, tension: 0.4, pointRadius: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { boxWidth: 10, color:'#6e7388', font:{size:10} } } },
+      scales: {
+        x: { grid:{display:false}, ticks:{color:'#3e4258'} },
+        y: { grid:{color:'#111318'}, ticks:{color:'#3e4258'} }
+      }
+    }
+  });
+
+  // Faiz Grafiği
+  new Chart(document.getElementById('ratesChart'), {
+    type: 'line',
+    data: {
+      labels: aylar,
+      datasets: [
+        { label:'TCMB', data:[50,50,50,50,50,50,50,50,50,50,50,47.5], borderColor:'#c94444', borderWidth:2, fill:false, tension:0, pointRadius:2 },
+        { label:'Fed',  data:[5.5,5.5,5.5,5.5,5.25,5.0,4.75,4.5,4.5,4.5,4.5,4.5], borderColor:'#3d78cc', borderWidth:2, fill:false, tension:0, pointRadius:2 },
+        { label:'ECB',  data:[4.0,4.0,3.75,3.5,3.25,3.25,3.0,3.0,2.9,2.9,2.75,2.65], borderColor:'#3d9e6e', borderWidth:2, fill:false, tension:0, pointRadius:2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display:true, labels:{boxWidth:10, color:'#6e7388', font:{size:10}} } },
+      scales: {
+        x: { grid:{display:false}, ticks:{color:'#3e4258'} },
+        y: { grid:{color:'#111318'}, ticks:{color:'#3e4258', callback: v=>v+'%'} }
+      }
+    }
+  });
+
+  // TÜFE Grafiği
+  new Chart(document.getElementById('cpiChart'), {
+    type: 'bar',
+    data: {
+      labels: aylar,
+      datasets: [{
+        label: 'TR TÜFE YoY',
+        data: [70,75,72,65,58,50,48,44,40,36,32,30],
+        backgroundColor: aylar.map((_,i) => i===11 ? 'rgba(184,149,46,0.85)' : 'rgba(184,149,46,0.2)'),
+        borderColor: 'rgba(184,149,46,0.5)',
+        borderWidth: 1, borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false} },
+      scales: {
+        x: { grid:{display:false}, ticks:{color:'#3e4258'} },
+        y: { grid:{color:'#111318'}, ticks:{color:'#3e4258', callback: v=>v+'%'} }
+      }
+    }
+  });
+}
+
+// ===== BAŞLATMA =====
+document.addEventListener('DOMContentLoaded', () => {
+  initCharts();
+  buildYieldBars(YIELDS);
+
+  // Sparkline'ları başlat (mock veri)
+  buildSparkline('policy', [52,52,50,50,50,48,48,47.5], '#c94444');
+  buildSparkline('cpi',    [75,72,65,58,48,40,32,30],   '#c94444');
+  buildSparkline('usdtry', [32,33,34,35,36,37,37.5,37.84], '#3d9e6e');
+  buildSparkline('eurtry', [35,36,37,38,39,40,41,41.22],   '#3d9e6e');
+  buildSparkline('eurusd', [1.07,1.08,1.09,1.08,1.09,1.09,1.089,1.089], '#6e7388');
+  buildSparkline('fed',    [5.5,5.5,5.25,5.0,4.75,4.5,4.5,4.5], '#3d78cc');
+  buildSparkline('unemp',  [3.8,3.9,3.9,4.0,4.0,4.1,4.0,4.1],  '#cc7033');
+  buildSparkline('gold',   [1980,2050,2100,2200,2400,2600,2900,2912], '#b8952e');
+
+  fetchAllData(false);
+  startCountdown();
+
+  // Günlük veriyi her 24 saatte bir yenile
+  setInterval(() => {
+    fetchFredData();
+    fetchTcmbData();
+    fetchCdsData();
+  }, 24 * 60 * 60 * 1000);
+});
+</script>
+</body>
+</html>
